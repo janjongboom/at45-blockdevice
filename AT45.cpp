@@ -27,30 +27,30 @@
 // Public functions
 //=============================================================================
 
-AT45::AT45(SPI* spi, PinName ncs) : _spi(spi), _ncs(ncs)
-{    
-    
+AT45::AT45(DestructableSPI* spi, PinName ncs) : _spi(spi), _ncs(ncs)
+{
+
     _pages = -1;        // number of pages
     _pagesize = -1;     // size of pages 256/264, 512/528, 1024/1056
     _devicesize = -1;   // In bytes
     _deep_down = true; // variable for deep power down function (awake ?)
-    _deep_down_onoff = false; // variable for deep power down function (On/Off) 
+    _deep_down_onoff = false; // variable for deep power down function (On/Off)
 
     _initialize();     // Populate all this stuff
-    
+
 }
 
 // This function returns the char
-char AT45::read_byte(int address) 
-{   
+char AT45::read_byte(int address)
+{
     // return byte from address
     return (_memread( address ));
-}  
+}
 
-int AT45::read_page(char* data, int page)         
+int AT45::read_page(char* data, int page)
 {
     int address = -1;
-    
+
     if(_pagesize == 256)
     {
         address = page * 256;
@@ -75,31 +75,31 @@ int AT45::read_page(char* data, int page)
     {
         address = page * 2048;
     }
-    else 
+    else
     {
         return (-1); // something isnt configured right
     }
-                
-    _busy();        
+
+    _busy();
     _flashread(1,address); // read the first page of the block into SRAM buffer 1
     _busy();               // Wait until First page has loaded into buffer 1
-        
+
     // this is done directly as we are reading back an entire buffer, and this can be done more optimally than using _sramread
     _select();
     _spi->write(0xd4);
     _sendaddr (0x0);
     _spi->write (0x0);   // dont care byte
-        
-    for(int i=0; i<_pagesize ;i++) 
+
+    for(int i=0; i<_pagesize ;i++)
     {
-        data[i] = _spi->write (0x0);  
+        data[i] = _spi->write (0x0);
     }
-    _deselect();            
-              
+    _deselect();
+
     return (0);
 }
 int AT45::read_block(char *data, int block)  // under construction F&#65533;R CHECK AF MIC OG LERCHE
-{    
+{
     char temp_data[_pagesize];
     int page_start;
 
@@ -120,16 +120,16 @@ int AT45::read_block(char *data, int block)  // under construction F&#65533;R CH
     //printf("Read done, Data is: %d\r\n",*data);
     return (0);
 }
-     
-int AT45::read_block(char *data[], int block)       // under construction F&#65533; CHECK AF MIC OG LERCHE 
+
+int AT45::read_block(char *data[], int block)       // under construction F&#65533; CHECK AF MIC OG LERCHE
 {
     char temp_data[_pagesize];
     int page_start;
-    
-    if(block < _blocks || block == 0)   
+
+    if(block < _blocks || block == 0)
     {
         page_start = block * 8;
-    
+
         for(int i=0; i<8 ;i++)                         // 8 pages in a block
         {
             read_page(temp_data, page_start);
@@ -137,33 +137,33 @@ int AT45::read_block(char *data[], int block)       // under construction F&#655
             for(int z=0; z<_pagesize ;z++)
             {
                 data[i][z] = temp_data[z];
-            }  
+            }
         }
     }
     else
     {
-        //do nothing   
+        //do nothing
     }
- 
+
     return (0);
 }
-       
+
 // This function writes the char to the address supplied
 // Note : We pass the raw address to the underlying functions
-void AT45::write_byte(int address, char data) 
+void AT45::write_byte(int address, char data)
 {
-    _busy();   
+    _busy();
     _flashread(1,address);             // read the Flash page into SRAM buffer
     _busy();                           // wait for the read to complete
     _sramwrite(1,address,data);        // Write new data into SRAM
     _busy();                           // Make sure flash isnt busy
     _flashwrite(1,address);            // Write back to the page address
-}       
-      
+}
+
 int AT45::write_page(char* data, int page)
 {
     int address = -1;
-    
+
     if(_pagesize == 256)
     {
         address = page * 256;
@@ -188,46 +188,46 @@ int AT45::write_page(char* data, int page)
     {
         address = page * 2048;
     }
-    else 
+    else
     {
         return (-1); // something isnt configured right
     }
-    
+
     _select();
     _spi->write(0x84); // writing to buffer #1
     _sendaddr (0); // we are writing to the entire buffer
 
-    for(int i=0; i<_pagesize ;i++) 
+    for(int i=0; i<_pagesize ;i++)
     {
-        _spi->write (data[i]);  
+        _spi->write (data[i]);
     }
-    _deselect();        
-        
-    _busy(); // make sure the Flahs isnt busy
-                
-    // issue command to write buffer 1 to the appropraite flash page
-    _select();  
-    _spi->write (0x83);  
-    _sendaddr (_getpaddr(address));  
     _deselect();
-    
-    return (0);   
+
+    _busy(); // make sure the Flahs isnt busy
+
+    // issue command to write buffer 1 to the appropraite flash page
+    _select();
+    _spi->write (0x83);
+    _sendaddr (_getpaddr(address));
+    _deselect();
+
+    return (0);
 }
 int AT45::write_block(char *data, int block) // under construction F&#65533;R CHECK AF MIC OG LERCHE
-{    
-    
+{
+
     int page_start;
     char page_arr[_pagesize];
-    
-    if (block < _blocks || block == 0) 
+
+    if (block < _blocks || block == 0)
     {
         page_start = block * 8;
-        
-        for (int i=0; i<8 ; i++) 
+
+        for (int i=0; i<8 ; i++)
         {
-            // Copy data from *data at 0 to 511 _ 512 - 1023, and so on every round.  
-            memcpy(page_arr, &data[_pagesize*i], _pagesize); 
-            
+            // Copy data from *data at 0 to 511 _ 512 - 1023, and so on every round.
+            memcpy(page_arr, &data[_pagesize*i], _pagesize);
+
             write_page(page_arr, page_start);
             page_start = page_start + 1;
         }
@@ -237,108 +237,108 @@ int AT45::write_block(char *data, int block) // under construction F&#65533;R CH
 
     return (0);
 }
-int AT45::write_block(char *data[], int block)      // under construction F&#65533; CHECK AF MIC OG LERCHE 
+int AT45::write_block(char *data[], int block)      // under construction F&#65533; CHECK AF MIC OG LERCHE
 {
     char temp_data[_pagesize];
     int page_start;
-    
-    if(block < _blocks || block == 0)   
+
+    if(block < _blocks || block == 0)
     {
         page_start = block * 8;
-    
-        for(int i=0; i<8 ;i++) 
+
+        for(int i=0; i<8 ;i++)
         {
             for(int z=0; z<_pagesize ;z++)
             {
-               temp_data[z] = data[i][z];    
-            }   
+               temp_data[z] = data[i][z];
+            }
             write_page(temp_data, page_start);
             page_start = page_start + 1;
         }
     }
     else
     {
-        //do nothing   
+        //do nothing
     }
- 
+
     return (0);
 }
 
-int AT45::FAT_read(char* data, int page)          
+int AT45::FAT_read(char* data, int page)
 {
     // For 256 byte pages, we read two pages
-    if((_pagesize == 256) || (_pagesize == 264)) 
+    if((_pagesize == 256) || (_pagesize == 264))
     {
         int address = page * 512; // This is the start address of the 512 byte block
-           
+
         _flashread(1,address); // read the first page of the block into SRAM buffer 1
         _busy(); // Wait until First page has loaded into buffer 1
-        
+
         // this is done directly as we are reading back an entire buffer, and this can be done more optimally than using _sramread
         _select();
         _spi->write(0xd4);
         _sendaddr (0x0);
         _spi->write (0x0);   // dont care byte
-        
-        for(int i=0;i<256;i++) 
+
+        for(int i=0;i<256;i++)
         {
-            data[i] = _spi->write (0x0);  
+            data[i] = _spi->write (0x0);
         }
-        _deselect();            
-                
+        _deselect();
+
         _flashread(1,address+256); // read the second page of the block into SRAM buffer 2
         _busy(); // Wait until second page has loaded into buffer 2
-        
+
         // Now the second page is loaded, pull this out into the second half of the data buffer
         // this is done directly as we are reading back an entire buffer, and this can be done more optimally than using _sramread
         _select();
         _spi->write(0xd4);
         _sendaddr (0x0);
         _spi->write (0x0);   // dont care byte
-        
-        for(int i=0;i<256;i++) 
+
+        for(int i=0;i<256;i++)
         {
-            data[256+i] = _spi->write (0x0);  
+            data[256+i] = _spi->write (0x0);
         }
-        _deselect();                
+        _deselect();
         return (0);
     }
-    
-    // For 512 byte pages, we read just the single page, transfer it    
-    else if((_pagesize == 512) || (_pagesize == 528)) 
+
+    // For 512 byte pages, we read just the single page, transfer it
+    else if((_pagesize == 512) || (_pagesize == 528))
     {
         int address = page * 512; // This is the start address of the 512 byte block
-    
+
         _busy(); // Wait until First page has loaded into buffer 1
         _flashread(1,address); // read the first page of the block into SRAM buffer 1
         _busy(); // Wait until First page has loaded into buffer 1
-        
+
         // Now the page has loaded, simply transfer it from the sram buffer to the data array
         // this is done directly as we are reading back an entire buffer, and this can be done more optimally than using _sramread
         _select();
         _spi->write(0xd4);
         _sendaddr (0x0);
         _spi->write (0x0);   // dont care byte
-        
-        for(int i=0;i<512;i++) 
+
+        for(int i=0;i<512;i++)
         {
-            data[i] = _spi->write (0x0);  
+            data[i] = _spi->write (0x0);
         }
-        _deselect();            
+        _deselect();
         return (0);
     }
 
     // For 1024 byte pages, we read just a single page, transfer half of it
-    else if((_pagesize == 1024) || (_pagesize == 1056)) 
+    else if((_pagesize == 1024) || (_pagesize == 1056))
     {
         int address = _getpaddr(page * 512); // This is the start address of the 512 byte block
 
         _busy(); // Wait until First page has loaded into buffer 1
-    
+
         _flashread(1,address); // read the first page of the block into SRAM buffer 1
 
         _busy(); // Wait until First page has loaded into buffer 1
-        
+
         // Now the page has loaded, simply transfer it from the sram buffer to the data array
         // this is done directly as we are reading back an entire buffer, and this can be done more optimally than using _sramread
 
@@ -346,35 +346,35 @@ int AT45::FAT_read(char* data, int page)
         _spi->write(0xd4);
 
         if (page %2) // odd numbered block, read from adress 0x200
-        { 
+        {
             _sendaddr (0x200);
         }
-        else // even numbered block, then we are reading from sram buffer 0x0 
+        else // even numbered block, then we are reading from sram buffer 0x0
         {
             _sendaddr (0x0);
         }
 
         _spi->write (0x0);   // dont care byte
-        
-        for(int i=0;i<512;i++) 
+
+        for(int i=0;i<512;i++)
         {
-            data[i] = _spi->write (0x0);  
+            data[i] = _spi->write (0x0);
         }
-        _deselect();            
+        _deselect();
         return (0);
     }
-    else 
+    else
     {
         return (-1); // something isnt configured right
     }
 }
-       
-int AT45::FAT_write(char* data, int page)        
+
+int AT45::FAT_write(char* data, int page)
 {
     // For 256 byte pages, we overwrite two pages
     if((_pagesize == 256) || (_pagesize == 264))
     {
-        
+
         // fill the first buffer with the first half of the block
         // do this directly, for better performance
         _select();
@@ -382,10 +382,10 @@ int AT45::FAT_write(char* data, int page)
         _sendaddr (0); // we are writing to the entire buffer
 
         for(int i=0;i<256;i++) {
-            _spi->write (data[i]);  
+            _spi->write (data[i]);
         }
-        _deselect();        
-                
+        _deselect();
+
         _flashwrite(1,(page*512));
 
         // fill the buffer with the second half of the block
@@ -395,17 +395,17 @@ int AT45::FAT_write(char* data, int page)
         _sendaddr (0); // we are writing to the entire buffer
 
         for(int i=0;i<256;i++) {
-            _spi->write (data[256+i]);  
+            _spi->write (data[256+i]);
         }
-        _deselect();        
+        _deselect();
 
         _flashwrite(1,((page*512)+256));
     }
-        
+
     // For 512 byte pages, we overwrite a single page
-    else if((_pagesize == 512) || (_pagesize == 528)) 
+    else if((_pagesize == 512) || (_pagesize == 528))
     {
-    
+
         // fill the first buffer with the block data
         // do this directly, for better performance
         _select();
@@ -413,22 +413,22 @@ int AT45::FAT_write(char* data, int page)
         _sendaddr (0); // we are writing to the entire buffer
 
         for(int i=0;i<512;i++) {
-            _spi->write (data[i]);  
+            _spi->write (data[i]);
         }
-        _deselect();        
-        
+        _deselect();
+
         _busy(); // make sure the Flahs isnt busy
-                
+
         // issue command to write buffer 1 to the appropraite flash page
-        _select();  
-        _spi->write (0x83);  
-        _sendaddr (_getpaddr(page * 512));  
-        _deselect();                
+        _select();
+        _spi->write (0x83);
+        _sendaddr (_getpaddr(page * 512));
+        _deselect();
     }
 
     // For 1024 byte pages, we do a read modify write
     // must make sure we overwrite the right half of the page!
-    else if((_pagesize == 1024) || (_pagesize == 1056)) 
+    else if((_pagesize == 1024) || (_pagesize == 1056))
     {
 
         _busy(); // make sure the flash isnt busy
@@ -436,48 +436,48 @@ int AT45::FAT_write(char* data, int page)
         int address = _getpaddr(page*512);
 
         // Read the page into sram
-        _flashread(1,address);  
-        
+        _flashread(1,address);
+
         // wait for this operation to complete
         _busy();
-        
+
         // Overwrite the appropriate half
         // do this directly, for better performance
         _select();
         _spi->write(0x84); // writing to buffer #1
 
-        if(page%2)  // this is an odd block number, overwrite second half of buffer 
-        {  
+        if(page%2)  // this is an odd block number, overwrite second half of buffer
+        {
             _sendaddr (0x200); // we are writing to the entire buffer
         }
         else        // this is an even block, overwrite the first half
-        {  
+        {
             _sendaddr (0x0); // we are writing to the entire buffer
         }
 
-        for(int i=0;i<512;i++) 
+        for(int i=0;i<512;i++)
         {
-            _spi->write (data[i]);  
+            _spi->write (data[i]);
         }
-        _deselect();        
-        
+        _deselect();
+
         // Write the page back
         _busy();
-        _flashwrite(1,address); 
+        _flashwrite(1,address);
     }
-    
+
     // Something has gone wrong
-    else 
+    else
     {
         return (-1);
     }
-    
+
     return (0);
 }
-       
+
 // Erase the entire chip
-void AT45::chip_erase() 
-{ 
+void AT45::chip_erase()
+{
     _busy(); // make sure flash isnt already in busy.
 
     _select();
@@ -486,18 +486,18 @@ void AT45::chip_erase()
     _spi->write(0x94);
     _spi->write(0x80);
     _spi->write(0x9a);
-    _deselect();  
+    _deselect();
 
     _busy(); // Make erase a blocking function
-}        
+}
 
-// Erase one block  
-void AT45::block_erase(int block)      
+// Erase one block
+void AT45::block_erase(int block)
 {
     int address = -1;
-    
+
     // Calculate page addresses
-    if(block < _blocks || block == 0)   
+    if(block < _blocks || block == 0)
     {
         if(_pagesize == 256)
         {
@@ -523,27 +523,27 @@ void AT45::block_erase(int block)
         {
             address = block * 16384;
         }
-        
+
         _busy();
         _select();
         _spi->write(0x50);
         _sendaddr (address);
         _deselect();
-        _busy();   
+        _busy();
     }
     else
     {
-        //do nothing   
+        //do nothing
     }
 }
 
-// Erase one page       
+// Erase one page
 void AT45::page_erase(int page)
 {
     int address = -1;
-    
+
     // Calculate page addresses
-    if(page < _pages || page == 0)   
+    if(page < _pages || page == 0)
     {
         if(_pagesize == 256)
         {
@@ -569,38 +569,38 @@ void AT45::page_erase(int page)
         {
             address = page * 2048;
         }
-        
+
         _busy();
         _select();
         _spi->write(0x81);
         _sendaddr (address);
         _deselect();
-        _busy();   
+        _busy();
     }
     else
     {
-        //do nothing   
+        //do nothing
     }
 }
-      
+
 // return the size of the part in bytes
-int AT45::device_size() 
-{ 
+int AT45::device_size()
+{
     return _devicesize;
-}       
+}
 
 // return the numbers of pages
-int AT45::pages() 
-{ 
+int AT45::pages()
+{
     return _pages;
-}       
-       
+}
+
 // return the page size of the part in bytes
-int AT45::pagesize() 
-{ 
+int AT45::pagesize()
+{
     return _pagesize;
-}       
-       
+}
+
 // A one-time programmable configuration
 void AT45::set_pageszie_to_binary()
 {
@@ -612,47 +612,47 @@ void AT45::set_pageszie_to_binary()
     _spi->write(0x2a);
     _spi->write(0x80);
     _spi->write(0xa6);
-    _deselect();  
+    _deselect();
 
-    _busy(); // Make erase a blocking function   
+    _busy(); // Make erase a blocking function
 }
 
 // Return the number of blocks in this device in accordance with the datasheet
-int AT45::blocks() 
-{  
+int AT45::blocks()
+{
     return _blocks;
 }
-       
+
 // Return the Id of the part
-int AT45::id() 
-{ 
+int AT45::id()
+{
     int id = 0;
     _select();
     _spi->write(0x9f);
     id = (_spi->write(0x00) << 8);
     id |= _spi->write(0x00);
-    _deselect();            
-    return id; 
+    _deselect();
+    return id;
 }
-         
+
 // return the Status
-int AT45::status() 
-{ 
+int AT45::status()
+{
     int status = 0;
     _select();
     _spi->write(0xd7);
     status = (_spi->write(0x00));
-    _deselect();            
-    return status; 
+    _deselect();
+    return status;
 }
-          
+
 // Make sure the Flash isnt already doing something
-void AT45::busy() 
+void AT45::busy()
 {
     _busy();
 }
 
-void AT45::deep_power_down(bool _deep_down_onoff) 
+void AT45::deep_power_down(bool _deep_down_onoff)
 {
     if(_deep_down_onoff == false) // Wake up from deep power down
     {
@@ -660,7 +660,7 @@ void AT45::deep_power_down(bool _deep_down_onoff)
         _spi->write(0xab);
         _deselect();
         _deep_down = true;
-        // remenber to want 35uS before using the device.          
+        // remenber to want 35uS before using the device.
     }
     else if(_deep_down_onoff == true) // Go to deep power down
     {
@@ -672,8 +672,8 @@ void AT45::deep_power_down(bool _deep_down_onoff)
     }
     else
     {
-        //do nothing   
-    }       
+        //do nothing
+    }
 }
 
 bool AT45::is_it_awake()
@@ -691,93 +691,95 @@ void AT45::_initialize()
     int _status = 0;
 
     _id = id();
+    printf("id is %d\n", _id);
     _status = status();
-    
-    if ((_id & 0x1f) == 0x3)  // 2Mbits 
-    { 
+    printf("status is %d\n", _status);
+
+    if ((_id & 0x1f) == 0x3)  // 2Mbits
+    {
         _devicesize = 262144; // Size in bytes
         _pages = 1024;        // Number of pages
         _blocks = 128;        // Number of blocks
-        if (_status & 0x1) 
+        if (_status & 0x1)
         {
             _pagesize = 256;
         }
-        else 
+        else
         {
             _pagesize = 264;
-        }    
+        }
     }
-    else if ( (_id & 0x1f) == 0x4) // 4Mbits 
-    { 
+    else if ( (_id & 0x1f) == 0x4) // 4Mbits
+    {
         _devicesize = 524288;
         _pages = 2048;
-        _blocks = 256;        
-        if (_status & 0x1) 
+        _blocks = 256;
+        if (_status & 0x1)
         {
             _pagesize = 256;
         }
-        else 
+        else
         {
             _pagesize = 264;
-        }    
+        }
     }
-    else if ( (_id & 0x1f) == 0x5) // 8Mbits 
-    { 
+    else if ( (_id & 0x1f) == 0x5) // 8Mbits
+    {
         _devicesize = 1048576;
         _pages = 4096;
-        _blocks = 512;        
-        if (_status & 0x1) 
+        _blocks = 512;
+        if (_status & 0x1)
         {
             _pagesize = 256;
         }
-        else 
+        else
         {
             _pagesize = 264;
-        }    
+        }
     }
-    else if ( (_id & 0x1f) == 0x6) // 16Mbits 
-    { 
+    else if ( (_id & 0x1f) == 0x6) // 16Mbits
+    {
         _devicesize = 2097152;
         _pages = 4096;
-        _blocks = 512;        
-        if (_status & 0x1) 
+        _blocks = 512;
+        if (_status & 0x1)
         {
             _pagesize = 512;
         }
-        else 
+        else
         {
             _pagesize = 528;
         }
     }
-    else if ( (_id & 0x1f) == 0x7) // 32Mbits 
-    { 
+    else if ( (_id & 0x1f) == 0x7) // 32Mbits
+    {
         _devicesize = 4194304;
         _pages = 8192;
-        _blocks = 1024;        
-        if (_status & 0x1) 
+        _blocks = 1024;
+        if (_status & 0x1)
         {
             _pagesize = 512;
         }
-        else 
+        else
         {
             _pagesize = 528;
         }
     }
-    else if ( (_id & 0x1f) == 0x8) // 64Mbits 
-    { 
+    else if ( (_id & 0x1f) == 0x8) // 64Mbits
+    {
         _devicesize = 8388608;
         _pages = 8192;
         _blocks = 1024;
-        if (_status & 0x1) 
+        if (_status & 0x1)
         {
             _pagesize = 1024;
         }
-        else 
+        else
         {
             _pagesize = 1056;
         }
     }
-    else 
+    else
     {
         _devicesize = -1;
         _pages = -1;
@@ -788,7 +790,7 @@ void AT45::_initialize()
 
 void AT45::_select()
 {
-    _ncs = 0;    
+    _ncs = 0;
 }
 
 void AT45::_deselect()
@@ -797,7 +799,7 @@ void AT45::_deselect()
 }
 
 void AT45::_busy() {
-    volatile int iambusy = 1;  
+    volatile int iambusy = 1;
     while (iambusy) {
         // if bit 7 is set, we can proceed
         if ( status() & 0x80 ) {
@@ -806,56 +808,56 @@ void AT45::_busy() {
 }
 
 // Write to an SRAM buffer
-// Note : We create buffer and page addresses in _sram and _flash        
+// Note : We create buffer and page addresses in _sram and _flash
 void AT45::_sramwrite(int buffer, int address, int data)
 {
 
     int cmd = 0;
     int baddr = 0;
-  
+
     baddr = _getbaddr(address);
-  
+
     _busy();
-  
+
     _select();
-  
-    if (buffer == 1) 
+
+    if (buffer == 1)
         {cmd = 0x84;}
-    else 
+    else
         {cmd = 0x87;}
 
     _spi->write(cmd);
     _sendaddr (baddr);
-    _spi->write (data);  
+    _spi->write (data);
 
-    _deselect();            
+    _deselect();
 }
 
 // Read from an SRAM buffer
 // Note : We create buffer and page addresses in _sram and _flash
-int AT45::_sramread(int buffer, int address) 
+int AT45::_sramread(int buffer, int address)
 {
 
     int cmd = 0;
     int baddr = 0;
     int bufdata = 0;
-  
+
     baddr = _getbaddr(address);
-  
+
     _select();
-  
-    if(buffer == 1) 
+
+    if(buffer == 1)
         {cmd = 0xd4;}
-    else 
+    else
         {cmd = 0xd6;}
-  
+
     _spi->write(cmd);
     _sendaddr (baddr);
     _spi->write (0x0);   // dont care byte
-    bufdata = _spi->write (0x0);  
-  
-    _deselect();            
- 
+    bufdata = _spi->write (0x0);
+
+    _deselect();
+
     return (bufdata);
 }
 
@@ -865,48 +867,48 @@ void AT45::_flashwrite (int buffer, int address)
 
     int cmd = 0;
     int paddr = _getpaddr(address);
- 
-    _busy();  // Check flash is not busy 
-    
-    _select();  
 
-    if (buffer == 1) 
+    _busy();  // Check flash is not busy
+
+    _select();
+
+    if (buffer == 1)
         {cmd = 0x83;}
-    else 
+    else
         {cmd = 0x86;}
-      
-    _spi->write (cmd);  
-    _sendaddr (paddr);  
-    _deselect();     
 
-    _busy();  // Check flash is not busy 
+    _spi->write (cmd);
+    _sendaddr (paddr);
+    _deselect();
+
+    _busy();  // Check flash is not busy
 }
 
 // Read from Flash memory into SRAM buffer
-void AT45::_flashread (int buffer, int address) 
+void AT45::_flashread (int buffer, int address)
 {
 
     int cmd = 0;
     int paddr = _getpaddr(address); // calculate page address
-  
+
     _busy();  // Check flash is not busy
     _select();
-      
+
     if (buffer == 1)
         {cmd = 0x53;}
     else
         {cmd = 0x55;}
 
-    _spi->write (cmd);  
+    _spi->write (cmd);
     _sendaddr (paddr);
-    _deselect();            
+    _deselect();
 }
 
 // Read directly from main memory
-int AT45::_memread (int address) 
+int AT45::_memread (int address)
 {
 
-    int data = 0;        
+    int data = 0;
     int addr;
 
     addr = _getpaddr(address) | _getbaddr(address);
@@ -917,16 +919,16 @@ int AT45::_memread (int address)
 
     _spi->write (0xd2);  // Direct read command
     _sendaddr (addr);
-  
+
     // 4 dont care bytes
-    _spi->write (0x00);  
-    _spi->write (0x00);  
-    _spi->write (0x00);  
-    _spi->write (0x00);  
-  
+    _spi->write (0x00);
+    _spi->write (0x00);
+    _spi->write (0x00);
+    _spi->write (0x00);
+
     // this one clocks the data
-    data = _spi->write (0x00);  
-    _deselect();            
+    data = _spi->write (0x00);
+    _deselect();
 
     _busy();
 
@@ -936,31 +938,31 @@ int AT45::_memread (int address)
 // Work out the page address
 // If we have a 2^N page size, it is just the top N bits
 // If we have non-2^N, we use the shifted address
-int AT45::_getpaddr(int address) 
+int AT45::_getpaddr(int address)
 {
 
     int paddr;
 
-    if (_pagesize == 256) {                 
-        paddr = address & 0xffffff00;}    
-    else if (_pagesize == 264) {                 
+    if (_pagesize == 256) {
+        paddr = address & 0xffffff00;}
+    else if (_pagesize == 264) {
         paddr = (address << 1) & 0xfffffe00;}
-    else if (_pagesize == 512) {                 
+    else if (_pagesize == 512) {
         paddr = address & 0xfffffe00;}
-    else if (_pagesize == 528 ) {           
+    else if (_pagesize == 528 ) {
        paddr = (address << 1) & 0xfffffc00;}
-    else if (_pagesize == 1024) {                 
+    else if (_pagesize == 1024) {
        paddr = address & 0xfffffc00;}
-    else if (_pagesize == 1056 ) {           
+    else if (_pagesize == 1056 ) {
         paddr = (address << 1) & 0xfffff800;}
     else {
         paddr = -1;}
-    
+
     return (paddr);
 }
 
 // Clean the buffer address. This is the 8/9/10 LSBs
-int AT45::_getbaddr(int address) 
+int AT45::_getbaddr(int address)
 {
 
     int baddr;
@@ -978,9 +980,9 @@ int AT45::_getbaddr(int address)
 }
 
 // Sends the three lest significant bytes of the supplied address
-void AT45::_sendaddr (int address) 
+void AT45::_sendaddr (int address)
 {
     _spi->write(address >> 16);
     _spi->write(address >> 8);
-    _spi->write(address);      
+    _spi->write(address);
 }

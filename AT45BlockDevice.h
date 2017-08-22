@@ -2,6 +2,7 @@
 #define _FRAGMENTATION_FLASH_AT45_H_
 
 #include "mbed.h"
+#include "DestructableSPI.h"
 #include "BlockDevice.h"
 #include "AT45.h"
 
@@ -14,6 +15,8 @@ public:
     AT45BlockDevice() : spi(SPI_MOSI, SPI_MISO, SPI_SCK, SPI_NSS), at45(&spi, SPI_NSS) {
         pagesize = at45.pagesize();
         totalsize = pagesize * at45.pages();
+
+        printf("pagesize is %d, totalsize is %d\n", pagesize, totalsize);
     }
 
     ~AT45BlockDevice() {
@@ -21,6 +24,7 @@ public:
     }
 
     virtual int init() {
+        printf("gonna init %d bytes\n", pagesize);
         pagebuffer = (char*)calloc(pagesize, 1);
         if (!pagebuffer) {
             return BD_ERROR_NO_MEMORY;
@@ -143,7 +147,7 @@ public:
     }
 
 private:
-    SPI  spi;
+    DestructableSPI  spi;
     AT45 at45;
     bd_size_t pagesize;
     bd_size_t totalsize;
