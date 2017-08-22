@@ -15,8 +15,6 @@ public:
     AT45BlockDevice() : spi(SPI_MOSI, SPI_MISO, SPI_SCK, SPI_NSS), at45(&spi, SPI_NSS) {
         pagesize = at45.pagesize();
         totalsize = pagesize * at45.pages();
-
-        printf("pagesize is %d, totalsize is %d\n", pagesize, totalsize);
     }
 
     ~AT45BlockDevice() {
@@ -24,7 +22,6 @@ public:
     }
 
     virtual int init() {
-        printf("gonna init %d bytes\n", pagesize);
         pagebuffer = (char*)calloc(pagesize, 1);
         if (!pagebuffer) {
             return BD_ERROR_NO_MEMORY;
