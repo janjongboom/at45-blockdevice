@@ -7,6 +7,12 @@
 #include "AT45.h"
 #include "mbed_debug.h"
 
+#if !defined(AT45_BLOCK_DEVICE_DEBUG)
+#define at45_debug(...) do {} while(0)
+#else
+#define at45_debug(...) debug(__VA_ARGS__)
+#endif
+
 enum at45_bd_error {
     BD_ERROR_NO_MEMORY          = -4002,
 };
@@ -43,7 +49,7 @@ public:
 
         char *buffer = (char*)a_buffer;
 
-        debug("[AT45] write addr=%lu size=%d\n", addr, size);
+        at45_debug("[AT45] write addr=%lu size=%d\n", addr, size);
 
         // find the page
         size_t bytes_left = size;
@@ -53,7 +59,7 @@ public:
             uint32_t length = pagesize - offset; // number of bytes to write in this pagebuffer
             if (length > bytes_left) length = bytes_left; // don't overflow
 
-            debug("[AT45] writing to page=%lu, offset=%lu, length=%lu\n", page, offset, length);
+            at45_debug("[AT45] writing to page=%lu, offset=%lu, length=%lu\n", page, offset, length);
 
             int r;
 
@@ -61,20 +67,20 @@ public:
             r = at45.read_page(pagebuffer, page);
             if (r != 0) return r;
 
-            // debug("[AT45] pagebuffer of page %d is:\n", page);
+            // at45_debug("[AT45] pagebuffer of page %d is:\n", page);
             // for (size_t ix = 0; ix < pagesize; ix++) {
-                // debug("%02x ", pagebuffer[ix]);
+                // at45_debug("%02x ", pagebuffer[ix]);
             // }
-            // debug("\n");
+            // at45_debug("\n");
 
             // now memcpy to the pagebuffer
             memcpy(pagebuffer + offset, buffer, length);
 
-            // debug("pagebuffer after memcpy is:\n", page);
+            // at45_debug("pagebuffer after memcpy is:\n", page);
             // for (size_t ix = 0; ix < pagesize; ix++) {
-                // debug("%02x ", pagebuffer[ix]);
+                // at45_debug("%02x ", pagebuffer[ix]);
             // }
-            // debug("\n");
+            // at45_debug("\n");
 
             // and write back
             r = at45.write_page(pagebuffer, page);
@@ -90,7 +96,7 @@ public:
     }
 
     virtual int read(void *a_buffer, bd_addr_t addr, bd_size_t size) {
-        debug("[AT45] read addr=%lu size=%d\n", addr, size);
+        at45_debug("[AT45] read addr=%lu size=%d\n", addr, size);
 
         char *buffer = (char*)a_buffer;
 
@@ -101,7 +107,7 @@ public:
             uint32_t length = pagesize - offset; // number of bytes to read in this pagebuffer
             if (length > bytes_left) length = bytes_left; // don't overflow
 
-            debug("[AT45] Reading from page=%lu, offset=%lu, length=%lu\n", page, offset, length);
+            at45_debug("[AT45] Reading from page=%lu, offset=%lu, length=%lu\n", page, offset, length);
 
             int r = at45.read_page(pagebuffer, page);
             if (r != 0) return r;
@@ -119,7 +125,7 @@ public:
     }
 
     virtual int erase(bd_addr_t addr, bd_size_t size) {
-        debug("[AT45] erase addr=%lu size=%d\n", addr, size);
+        at45_debug("[AT45] erase addr=%lu size=%d\n", addr, size);
 
         uint32_t start_page = addr / pagesize; // this gets auto-rounded
         uint32_t end_page = (addr + size) / pagesize;
