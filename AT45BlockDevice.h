@@ -15,6 +15,7 @@
 
 enum at45_bd_error {
     BD_ERROR_NO_MEMORY          = -4002,
+    BD_ERROR_NOT_INITIALIZED    = -4003,
 };
 
 class AT45BlockDevice : public BlockDevice {
@@ -44,6 +45,8 @@ public:
     }
 
     virtual int program(const void *a_buffer, bd_addr_t addr, bd_size_t size) {
+        if (!pagebuffer) return BD_ERROR_NOT_INITIALIZED;
+
         // Q: a 'global' pagebuffer makes this code not thread-safe...
         // is this a problem? don't really wanna malloc/free in every call
 
@@ -96,6 +99,8 @@ public:
     }
 
     virtual int read(void *a_buffer, bd_addr_t addr, bd_size_t size) {
+        if (!pagebuffer) return BD_ERROR_NOT_INITIALIZED;
+
         at45_debug("[AT45] read addr=%lu size=%d\n", addr, size);
 
         char *buffer = (char*)a_buffer;
@@ -125,6 +130,8 @@ public:
     }
 
     virtual int erase(bd_addr_t addr, bd_size_t size) {
+        if (!pagebuffer) return BD_ERROR_NOT_INITIALIZED;
+
         at45_debug("[AT45] erase addr=%lu size=%d\n", addr, size);
 
         uint32_t start_page = addr / pagesize; // this gets auto-rounded
