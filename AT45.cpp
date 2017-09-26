@@ -23,6 +23,8 @@
 #include "mbed.h"
 #include "AT45.h"
 
+#define AT45_OUT_OF_MEMORY -4002
+
 //=============================================================================
 // Public functions
 //=============================================================================
@@ -100,7 +102,10 @@ int AT45::read_page(char* data, int page)
 }
 int AT45::read_block(char *data, int block)  // under construction F&#65533;R CHECK AF MIC OG LERCHE
 {
-    char temp_data[_pagesize];
+    char* temp_data = (char*)malloc(_pagesize);
+
+    if (!temp_data) return AT45_OUT_OF_MEMORY;
+
     int page_start;
 
     if (block < _blocks || block == 0) {
@@ -117,13 +122,18 @@ int AT45::read_block(char *data, int block)  // under construction F&#65533;R CH
     } else {
         //do nothing
     }
+    free(temp_data);
+
     //printf("Read done, Data is: %d\r\n",*data);
     return (0);
 }
 
 int AT45::read_block(char *data[], int block)       // under construction F&#65533; CHECK AF MIC OG LERCHE
 {
-    char temp_data[_pagesize];
+    char* temp_data = (char*)malloc(_pagesize);
+
+    if (!temp_data) return AT45_OUT_OF_MEMORY;
+
     int page_start;
 
     if(block < _blocks || block == 0)
@@ -144,6 +154,8 @@ int AT45::read_block(char *data[], int block)       // under construction F&#655
     {
         //do nothing
     }
+
+    free(temp_data);
 
     return (0);
 }
@@ -217,7 +229,9 @@ int AT45::write_block(char *data, int block) // under construction F&#65533;R CH
 {
 
     int page_start;
-    char page_arr[_pagesize];
+    char* page_arr = (char*)malloc(_pagesize);
+
+    if (!page_arr) return AT45_OUT_OF_MEMORY;
 
     if (block < _blocks || block == 0)
     {
@@ -235,11 +249,16 @@ int AT45::write_block(char *data, int block) // under construction F&#65533;R CH
         //do nothing
     }
 
+    free(page_arr);
+
     return (0);
 }
 int AT45::write_block(char *data[], int block)      // under construction F&#65533; CHECK AF MIC OG LERCHE
 {
-    char temp_data[_pagesize];
+    char* temp_data = (char*)malloc(_pagesize);
+
+    if (!temp_data) return AT45_OUT_OF_MEMORY;
+
     int page_start;
 
     if(block < _blocks || block == 0)
@@ -260,6 +279,8 @@ int AT45::write_block(char *data[], int block)      // under construction F&#655
     {
         //do nothing
     }
+
+    free(temp_data);
 
     return (0);
 }

@@ -18,10 +18,8 @@ public:
         totalsize = pagesize * at45.pages();
     }
 
-    ~AT45BlockDevice() {
+    virtual ~AT45BlockDevice() {
         if (pagebuffer) free(pagebuffer);
-
-        spi.free();
     }
 
     virtual int init() {
@@ -34,12 +32,16 @@ public:
     }
 
     virtual int deinit() {
+        spi.free();
+
         return BD_ERROR_OK;
     }
 
-    virtual int program(const void *buffer, bd_addr_t addr, bd_size_t size) {
+    virtual int program(const void *a_buffer, bd_addr_t addr, bd_size_t size) {
         // Q: a 'global' pagebuffer makes this code not thread-safe...
         // is this a problem? don't really wanna malloc/free in every call
+
+        char *buffer = (char*)a_buffer;
 
         debug("[AT45] write addr=%lu size=%d\n", addr, size);
 
@@ -87,8 +89,10 @@ public:
         return BD_ERROR_OK;
     }
 
-    virtual int read(void *buffer, bd_addr_t addr, bd_size_t size) {
+    virtual int read(void *a_buffer, bd_addr_t addr, bd_size_t size) {
         debug("[AT45] read addr=%lu size=%d\n", addr, size);
+
+        char *buffer = (char*)a_buffer;
 
         size_t bytes_left = size;
         while (bytes_left > 0) {
