@@ -691,9 +691,7 @@ void AT45::_initialize()
     int _status = 0;
 
     _id = id();
-    printf("id is %d\n", _id);
     _status = status();
-    printf("status is %d\n", _status);
 
     if ((_id & 0x1f) == 0x3)  // 2Mbits
     {

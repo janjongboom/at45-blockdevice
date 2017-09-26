@@ -5,6 +5,7 @@
 #include "DestructableSPI.h"
 #include "BlockDevice.h"
 #include "AT45.h"
+#include "mbed_debug.h"
 
 enum at45_bd_error {
     BD_ERROR_NO_MEMORY          = -4002,
@@ -19,6 +20,8 @@ public:
 
     ~AT45BlockDevice() {
         if (pagebuffer) free(pagebuffer);
+
+        spi.free();
     }
 
     virtual int init() {
@@ -38,7 +41,7 @@ public:
         // Q: a 'global' pagebuffer makes this code not thread-safe...
         // is this a problem? don't really wanna malloc/free in every call
 
-        // printf("write addr=%lu size=%d\n", addr, size);
+        debug("[AT45] write addr=%lu size=%d\n", addr, size);
 
         // find the page
         size_t bytes_left = size;
@@ -48,7 +51,7 @@ public:
             uint32_t length = pagesize - offset; // number of bytes to write in this pagebuffer
             if (length > bytes_left) length = bytes_left; // don't overflow
 
-            // printf("Writing to page=%lu, offset=%lu, length=%lu\n", page, offset, length);
+            debug("[AT45] writing to page=%lu, offset=%lu, length=%lu\n", page, offset, length);
 
             int r;
 
@@ -56,20 +59,20 @@ public:
             r = at45.read_page(pagebuffer, page);
             if (r != 0) return r;
 
-            // printf("pagebuffer of page %d is:\n", page);
+            // debug("[AT45] pagebuffer of page %d is:\n", page);
             // for (size_t ix = 0; ix < pagesize; ix++) {
-            //     printf("%02x ", pagebuffer[ix]);
+                // debug("%02x ", pagebuffer[ix]);
             // }
-            // printf("\n");
+            // debug("\n");
 
             // now memcpy to the pagebuffer
             memcpy(pagebuffer + offset, buffer, length);
 
-            // printf("pagebuffer after memcpy is:\n", page);
+            // debug("pagebuffer after memcpy is:\n", page);
             // for (size_t ix = 0; ix < pagesize; ix++) {
-            //     printf("%02x ", pagebuffer[ix]);
+                // debug("%02x ", pagebuffer[ix]);
             // }
-            // printf("\n");
+            // debug("\n");
 
             // and write back
             r = at45.write_page(pagebuffer, page);
@@ -85,7 +88,7 @@ public:
     }
 
     virtual int read(void *buffer, bd_addr_t addr, bd_size_t size) {
-        // printf("read addr=%lu size=%d\n", addr, size);
+        debug("[AT45] read addr=%lu size=%d\n", addr, size);
 
         size_t bytes_left = size;
         while (bytes_left > 0) {
@@ -94,7 +97,7 @@ public:
             uint32_t length = pagesize - offset; // number of bytes to read in this pagebuffer
             if (length > bytes_left) length = bytes_left; // don't overflow
 
-            // printf("Reading from page=%lu, offset=%lu, length=%lu\n", page, offset, length);
+            debug("[AT45] Reading from page=%lu, offset=%lu, length=%lu\n", page, offset, length);
 
             int r = at45.read_page(pagebuffer, page);
             if (r != 0) return r;
@@ -112,7 +115,7 @@ public:
     }
 
     virtual int erase(bd_addr_t addr, bd_size_t size) {
-        // printf("erase addr=%lu size=%d\n", addr, size);
+        debug("[AT45] erase addr=%lu size=%d\n", addr, size);
 
         uint32_t start_page = addr / pagesize; // this gets auto-rounded
         uint32_t end_page = (addr + size) / pagesize;

@@ -17,6 +17,7 @@
  #include "mbed.h"
  #include "DestructableSPI.h"
  #include "platform/mbed_critical.h"
+ #include "mbed_debug.h"
 
  #if DEVICE_SPI
 
@@ -42,9 +43,10 @@
      _acquire();
  }
 
- DestructableSPI::~DestructableSPI() {
-     printf("SPI destructor\n");
+ void DestructableSPI::free() {
      spi_free(&_spi);
+
+     debug("spi_free called\n");
  }
 
  void DestructableSPI::format(int bits, int mode) {

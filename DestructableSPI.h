@@ -89,9 +89,9 @@
      DestructableSPI(PinName mosi, PinName miso, PinName sclk, PinName ssel=NC);
 
      /**
-      * Destruct the SPI interface
+      * Destruct the underlying SPI interface
       */
-     ~DestructableSPI();
+     void free();
 
      /** Destruct the SPI master
       */
