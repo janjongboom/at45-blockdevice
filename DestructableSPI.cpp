@@ -45,8 +45,6 @@
 
  void DestructableSPI::free() {
      spi_free(&_spi);
-
-     debug("spi_free called\n");
  }
 
  void DestructableSPI::format(int bits, int mode) {
