@@ -23,6 +23,7 @@ public:
     AT45BlockDevice() : spi(SPI_MOSI, SPI_MISO, SPI_SCK, SPI_NSS), at45(&spi, SPI_NSS) {
         pagesize = at45.pagesize();
         totalsize = pagesize * at45.pages();
+        last_page = 0xffffffff;
     }
 
     virtual ~AT45BlockDevice() {
@@ -67,8 +68,10 @@ public:
             int r;
 
             // retrieve the page first, as we don't want to overwrite the full page
-            r = at45.read_page(pagebuffer, page);
-            if (r != 0) return r;
+            if (last_page != page) {
+                r = at45.read_page(pagebuffer, page);
+                if (r != 0) return r;
+            }
 
             // at45_debug("[AT45] pagebuffer of page %d is:\n", page);
             // for (size_t ix = 0; ix < pagesize; ix++) {
@@ -93,6 +96,8 @@ public:
             bytes_left -= length;
             addr += length;
             buffer += length;
+
+            last_page = page;
         }
 
         return BD_ERROR_OK;
@@ -114,8 +119,10 @@ public:
 
             at45_debug("[AT45] Reading from page=%lu, offset=%lu, length=%lu\n", page, offset, length);
 
-            int r = at45.read_page(pagebuffer, page);
-            if (r != 0) return r;
+            if (last_page != page) {
+                int r = at45.read_page(pagebuffer, page);
+                if (r != 0) return r;
+            }
 
             // copy into the provided buffer
             memcpy(buffer, pagebuffer + offset, length);
@@ -124,6 +131,8 @@ public:
             bytes_left -= length;
             addr += length;
             buffer += length;
+
+            last_page = page;
         }
 
         return BD_ERROR_OK;
@@ -142,6 +151,10 @@ public:
         for (size_t ix = start_page; ix <= end_page; ix++) {
             int r = at45.write_page(pagebuffer, ix);
             if (r != 0) return r;
+        }
+
+        if (last_page >= start_page && last_page <= end_page) {
+            last_page = 0xffffffff;
         }
 
         return BD_ERROR_OK;
@@ -169,6 +182,7 @@ private:
     bd_size_t pagesize;
     bd_size_t totalsize;
     char* pagebuffer;
+    uint32_t last_page;
 };
 
 #endif // _FRAGMENTATION_FLASH_AT45_H_
