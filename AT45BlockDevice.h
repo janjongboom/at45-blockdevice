@@ -30,7 +30,6 @@ public:
     {
         pagesize = at45.pagesize();
         totalsize = pagesize * at45.pages();
-        last_page = 0xffffffff;
     }
 
     virtual ~AT45BlockDevice() {
@@ -116,10 +115,6 @@ public:
 
         // why is this marked as void??
         at45.page_erase(page);
-
-        if (last_page >= start_page && last_page <= end_page) {
-            last_page = 0xffffffff;
-        }
 
         return BD_ERROR_OK;
     }
