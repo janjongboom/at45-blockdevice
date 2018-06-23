@@ -68,7 +68,7 @@ public:
 
         uint32_t page = addr / pagesize; // this gets auto-rounded
 
-        at45_debug("[AT45] writing to page=%lu\n", page, offset, length);
+        at45_debug("[AT45] writing to page=%lu\n", page);
 
         int r = at45.write_page((char*)a_buffer, page);
         if (r != 0) return r;
