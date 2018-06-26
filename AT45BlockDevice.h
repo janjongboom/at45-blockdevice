@@ -10,7 +10,7 @@
 #if !defined(AT45_BLOCK_DEVICE_DEBUG)
 #define at45_debug(...) do {} while(0)
 #else
-#define at45_debug(...) debug(__VA_ARGS__)
+#define at45_debug(...) printf(__VA_ARGS__)
 #endif
 
 class AT45BlockDevice : public BlockDevice {
@@ -61,17 +61,24 @@ public:
     virtual int program(const void *a_buffer, bd_addr_t addr, bd_size_t size) {
         MBED_ASSERT(is_valid_read(addr, size));
 
-        // Q: a 'global' pagebuffer makes this code not thread-safe...
-        // is this a problem? don't really wanna malloc/free in every call
+        at45_debug("[AT45] write addr=%llu size=%llu\n", addr, size);
 
-        at45_debug("[AT45] write addr=%lu size=%d\n", addr, size);
+        uint32_t start_page = addr / pagesize;
+        uint32_t end_page = (addr + size) / pagesize;
 
-        uint32_t page = addr / pagesize; // this gets auto-rounded
+        const void *buffer = a_buffer;
 
-        at45_debug("[AT45] writing to page=%lu\n", page, offset, length);
+        for (size_t page = start_page; page < end_page; page++) {
+            at45_debug("[AT45] writing to page=%lu\n", page);
 
-        int r = at45.write_page((char*)a_buffer, page);
-        if (r != 0) return r;
+            int r = at45.write_page((char*)buffer, page);
+            if (r != 0) {
+                at45_debug("[AT45] write failed (%d)\n", r);
+                return r;
+            }
+
+            buffer += pagesize;
+        }
 
         return BD_ERROR_OK;
     }
@@ -86,14 +93,24 @@ public:
     virtual int read(void *a_buffer, bd_addr_t addr, bd_size_t size) {
         MBED_ASSERT(is_valid_program(addr, size));
 
-        at45_debug("[AT45] read addr=%lu size=%d\n", addr, size);
+        at45_debug("[AT45] read addr=%llu size=%llu\n", addr, size);
 
-        uint32_t page = addr / pagesize; // this gets auto-rounded
+        uint32_t start_page = addr / pagesize;
+        uint32_t end_page = (addr + size) / pagesize;
 
-        at45_debug("[AT45] Reading from page=%lu\n", page);
+        const void *buffer = a_buffer;
 
-        int r = at45.read_page((char*)a_buffer, page);
-        if (r != 0) return r;
+        for (size_t page = start_page; page < end_page; page++) {
+            at45_debug("[AT45] reading from page=%lu\n", page);
+
+            int r = at45.read_page((char*)buffer, page);
+            if (r != 0) {
+                at45_debug("[AT45] read failed (%d)\n", r);
+                return r;
+            }
+
+            buffer += pagesize;
+        }
 
         return BD_ERROR_OK;
     }
@@ -109,12 +126,17 @@ public:
     virtual int erase(bd_addr_t addr, bd_size_t size) {
         MBED_ASSERT(is_valid_erase(addr, size));
 
-        at45_debug("[AT45] erase addr=%lu size=%d\n", addr, size);
+        at45_debug("[AT45] erase addr=%llu size=%llu\n", addr, size);
 
-        uint32_t page = addr / pagesize; // this gets auto-rounded
+        uint32_t start_page = addr / pagesize;
+        uint32_t end_page = (addr + size) / pagesize;
 
-        // why is this marked as void??
-        at45.page_erase(page);
+        for (size_t page = start_page; page < end_page; page++) {
+            at45_debug("[AT45] erasing page=%lu\n", page);
+
+            // why is this marked as void??
+            at45.page_erase(page);
+        }
 
         return BD_ERROR_OK;
     }
