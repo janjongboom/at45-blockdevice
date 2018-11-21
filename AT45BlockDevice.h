@@ -66,7 +66,7 @@ public:
         uint32_t start_page = addr / pagesize;
         uint32_t end_page = (addr + size) / pagesize;
 
-        const void *buffer = a_buffer;
+        const char *buffer = (const char*)a_buffer;
 
         for (size_t page = start_page; page < end_page; page++) {
             at45_debug("[AT45] writing to page=%lu\n", page);
@@ -98,7 +98,7 @@ public:
         uint32_t start_page = addr / pagesize;
         uint32_t end_page = (addr + size) / pagesize;
 
-        const void *buffer = a_buffer;
+        char *buffer = (char*)a_buffer;
 
         for (size_t page = start_page; page < end_page; page++) {
             at45_debug("[AT45] reading from page=%lu\n", page);
