@@ -126,17 +126,21 @@ public:
     virtual int erase(bd_addr_t addr, bd_size_t size) {
         MBED_ASSERT(is_valid_erase(addr, size));
 
-        at45_debug("[AT45] erase addr=%llu size=%llu\n", addr, size);
+        #warning "Erase temporarily disabled in this driver!"
 
-        uint32_t start_page = addr / pagesize;
-        uint32_t end_page = (addr + size) / pagesize;
+        // so this is buggy... write here after actually fails
 
-        for (size_t page = start_page; page < end_page; page++) {
-            at45_debug("[AT45] erasing page=%lu\n", page);
+        // at45_debug("[AT45] erase addr=%llu size=%llu\n", addr, size);
 
-            // why is this marked as void??
-            at45.page_erase(page);
-        }
+        // uint32_t start_page = addr / pagesize;
+        // uint32_t end_page = (addr + size) / pagesize;
+
+        // for (size_t page = start_page; page < end_page; page++) {
+        //     at45_debug("[AT45] erasing page=%lu\n", page);
+
+        //     // why is this marked as void??
+        //     at45.page_erase(page);
+        // }
 
         return BD_ERROR_OK;
     }
