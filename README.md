@@ -1,6 +1,10 @@
+# You probably want Mbed OS's built-in [DataFlash](https://github.com/ARMmbed/mbed-os/tree/master/components/storage/blockdevice/COMPONENT_DATAFLASH) component.
+
 # AT45 Block Device
 
 Mbed OS 5 [BlockDevice](https://os.mbed.com/docs/latest/reference/blockdevice.html) driver for the AT45 SPI Dataflash chip. Based off [Steen Jørgensen's AT45 library](https://os.mbed.com/users/stjo2809/code/AT45/). You can use this driver together with the file system APIs in Mbed OS to mount a file system on your external flash, or just use the driver directly. Note that you can only do aligned operations on this block device.
+
+Erase is disabled in this driver, due to issues. Use the driver above instead.
 
 ## Deinitialization
 
